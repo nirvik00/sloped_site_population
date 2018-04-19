@@ -5,6 +5,7 @@ import random
 class abs_cell(object):
     def __init__(self, v, id_, hi_poly_, low_poly_):
         self.val=v
+        self.flip_val=0
         self.id=id_
         self.high_poly=hi_poly_
         self.low_poly=low_poly_
@@ -15,6 +16,8 @@ class abs_cell(object):
     def set_val(self,t):
         self.val=t
         #print(self.val)
+    def flip_value(self,max):
+        self.flip_val=max-self.val    
     def get_val(self):
         return self.val
     def get_id(self):
@@ -46,7 +49,7 @@ class abs_cell(object):
         cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, i[0][2]]
         val=int(self.val)
         id=self.id
-        self.plot=rs.AddTextDot(str(val),cen)
+        self.plot=rs.AddTextDot(str(val)+","+str(int(self.flip_val)),cen)
         return self.val
     def del_plot(self):
         try:
@@ -89,3 +92,4 @@ class abs_cell(object):
         return self.occupied
     def set_occupied(self, t):
         self.occupied=t
+

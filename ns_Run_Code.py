@@ -10,7 +10,7 @@ from ns_analyze_site_obj import analyze_site
 from ns_analyze_input_obj import get_inp
 
 class start_proc(object):
-    def __init__(self,site_crv,site_srf):
+    def __init__(self,site_crv,site_srf, plot_grad):
         self.SITE_ON_PLANE=site_crv
         self.SITE_SURFACE=site_srf
         
@@ -29,12 +29,14 @@ class start_proc(object):
         for i in self.ABS_CELL_LI:
             id=i.get_id()
             val=i.get_val()
-            self.SORT_LI.append([id,val])
-            #val=i.plot_val()
+            self.SORT_LI.append([id,val])            
             if(val>self.max_grad):
                 self.max_grad=val
             if(val<self.min_grad):
                 self.min_grad=val    
+        #flip the gradients
+        for i in self.ABS_CELL_LI:
+            i.flip_value(self.max_grad)
         
         print('min val= %s,  max val= %s'%(self.min_grad,self.max_grad))
         for i in self.ABS_CELL_LI:
@@ -43,14 +45,17 @@ class start_proc(object):
         self.SORT_LI.sort(key=operator.itemgetter(1))
         
         for i in self.ABS_CELL_LI:
-            #val=i.plot_val()#PLOT GRADIENTS
+            if(plot_grad==True):
+                val=i.plot_val()#PLOT GRADIENTS
             pass
         
-        self.THRESHOLD_DISTANCE=50#threshold_distance= distance between buildings
-        self.build_blocks_at_distance()
+        self.THRESHOLD_DISTANCE=0#threshold_distance= distance between buildings
+        #called from main process loop - OUTSIDE
+        #self.build_blocks_at_distance()
         
         THRESHOLD_GRADIENT=self.max_grad/2
-        #build_blocks_at_gradient(SORT_LI,FULL_INP_OBJ_LI,ABS_CELL_LI)#construct on grad
+        #called from main process loop - OUTSIDE
+        #self.build_blocks_at_gradient()#construct on grad
         
     def build_blocks_at_distance(self):
         counter=-1
@@ -84,13 +89,32 @@ class start_proc(object):
         for i in self.FULL_INP_OBJ_LI:
             id=random.randint(0,len(self.ABS_CELL_LI)-1)
             con1=self.max_grad/2
-            while(id in used_cell_li):
+            con2=self.THRESHOLD_DISTANCE
+            trip=0
+            while(id not in used_cell_li and trip<1000):
                 id=random.randint(0,len(self.ABS_CELL_LI)-1)
-                used_cell_li.append(id)
+                grad=self.ABS_CELL_LI[id].get_val()
+                if(id not in used_cell_li and grad<con1):
+                    self.ABS_CELL_LI[id].plot_building(i)
+                    used_cell_li.append(id)
+                    break
+                    
+    def build_path(self):
+        print('build path')
 
 site_crv=rs.GetObject('pick plane site')
 site_srf=rs.GetObject('pick site surface')
-
+b=rs.BoundingBox(site_crv)
+d1=rs.Distance(b[0],b[1])
+d2=rs.Distance(b[2],b[1])
 rs.EnableRedraw(False)
-start_proc(site_crv, site_srf)
+for i in range(1):
+    for j in range(1):
+        temp_site_crv=rs.CopyObject(site_crv,[i*(d1+50),j*(d2+50),0])
+        temp_site_srf=rs.CopyObject(site_srf,[i*(d1+50),j*(d2+50),0])
+        plot_grad=True# plot textdot showing the grad on srf cells
+        s=start_proc(temp_site_crv, temp_site_srf,plot_grad)
+        #s.build_blocks_at_distance() # construct at threshold distance
+        #s.build_blocks_at_gradient()# construct on threshold grad
+        s.build_path()
 rs.EnableRedraw(True)
