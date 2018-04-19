@@ -14,7 +14,7 @@ uni_admin,5525,20,25,15,25,12,15,1,3,120-120-0,block,tower
 dept_admin,6712,20,25,15,25,14,30,7,10,20-20-90,block,tower
 Faculty_staff_dining_room,1188,20,25,15,25,3,8,8,10,200-120-1,block,tower
 Faculty_staff_housing,19998,20,25,15,25,25,30,7,10,200-100-12,block,tower
-Chinese_employee_housing,7238,20,25,15,25,24,30,9,10,120-220-260,block,tower
+Chinese_employee_housing,7238,20,25,15,25,24,30,9,10,120-220-250,block,tower
 Foreign_employee_housing,11880,20,25,15,25,23,30,4,10,200-200-150,block,tower
 Aux_Foreign_Employee,880,20,25,15,25,3,8,5,10,20-120-110,block,tower
 Ummaried_employee_housing,494,20,25,15,25,3,8,6,10,20-120-111,block,tower
