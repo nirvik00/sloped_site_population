@@ -11,17 +11,18 @@ from ns_analyze_input_obj import get_inp
 
 
 class Cell(object):
-    def __init__(self,poly,id,id_):
+    def __init__(self,poly,id):
         self.poly_pts=poly
         self.id=id
         self.poly=None
         self.score=0
-        self.base_id=id_
+        
+        
     def get_id(self):
         return self.id
     def gen_poly(self):
         self.poly=rs.AddPolyline(self.poly_pts)
-        rs.ObjectLayer(self.poly,'ns_poly')
+        rs.ObjectLayer(self.poly,'ns_garbage')
         return self.poly
     def del_poly(self):
         if(self.poly):
@@ -98,8 +99,9 @@ class start_proc(object):
     def __init__(self,site_crv,site_srf):
         self.SITE_ON_PLANE=site_crv
         self.SITE_SURFACE=site_srf
+        self.PATH=[]
         
-    def init_gen_building_proc(self, plot_grad):
+    def init_gen_building_proc(self, plot_grad, poly_path):
         inp=get_inp() # call - main csv process and intialize and get the input objects
         self.FULL_INP_OBJ_LI=inp.get_full_inp_obj_li() # expanded input objects 
         max_LW=inp.get_max_l_w()
@@ -127,8 +129,12 @@ class start_proc(object):
         
         print('min val= %s,  max val= %s'%(self.min_grad,self.max_grad))
         for i in self.ABS_CELL_LI:
+            t=get_plane_intx_poly
+            """
+            if(t==True):
+                i.set_occupied==True
             i.gen_srf(self.min_grad,self.max_grad)
-        
+            """
         self.SORT_LI.sort(key=operator.itemgetter(1))
         
         for i in self.ABS_CELL_LI:
@@ -173,6 +179,7 @@ class start_proc(object):
         counter=-1
         plot_counter=0
         used_cell_li=[]
+        
         for i in self.FULL_INP_OBJ_LI:
             id=random.randint(0,len(self.ABS_CELL_LI)-1)
             con1=self.max_grad/2
@@ -217,7 +224,6 @@ class start_proc(object):
                 t3=rs.PointInPlanarClosedCurve(p3,site_crv)
                 if(t0!=0 and t1!=0 and t2!=0 and t3!=0):
                     poly=[p0,p1,p2,p3,p0]
-                    
                     cell=Cell(poly,counter)
                     plane_cell_li.append(cell)
                     counter+=1
@@ -226,6 +232,130 @@ class start_proc(object):
         rs.DeleteObject(srf)
         return plane_cell_li
     
+    def initPath(self,cells):
+        start_cen=cells[0].get_cen()
+        max_di=0
+        max_id=0
+        for i in cells:
+            i.gen_poly()
+            cen=i.get_cen()
+            di=rs.Distance(start_cen,cen)
+            id=i.id
+            if(di>max_di):
+                max_di=di
+                max_id=id
+        cells[max_id].set_score(100)
+    
+    def buildPath(self,cells):
+        self.PATH=[]
+        path=[]
+        path.append(cells[0])
+        counter=0
+        
+        while(counter<25):
+            counter+=1
+            i=path[-1]
+            me=i.get_cen()
+            meL=i.getL()
+            meW=i.getW()
+            me_score=i.get_score()
+            ri=[me[0]+meL,me[1],0] #ri
+            le=[me[0]-meL,me[1],0] #le
+            up=[me[0],me[1]+meW,0] #up
+            dn=[me[0],me[1]-meW,0] #dn
+            max_score=0
+            score_li=[] # [ cell, score ]
+            for j in cells:
+                if(j not in path):
+                    this_score=j.get_score()
+                    if(j.pt_in_poly(le)==True):                     
+                     score_li.append([j,this_score])
+                    if(j.pt_in_poly(ri)==True):
+                        score_li.append([j,this_score])
+                    if(j.pt_in_poly(up)==True):
+                        score_li.append([j,this_score])
+                    if(j.pt_in_poly(dn)==True):
+                        score_li.append([j,this_score])
+            score_li.sort(key=itemgetter(1))
+            #print('\n\n---------')
+            if(len(score_li)>0):
+                for j in score_li:
+                    #print('got score= %s , this_id= %s, req_id= %s'%(j[1], i.id, j[0].id))
+                    pass
+                r=random.randint(0,len(score_li)-1)
+                req_cell=score_li[-1][0]
+                next=req_cell.get_cen()
+                #print('accepted id %s'%(req_cell.id))
+                L=rs.AddLine(me,next)
+                rs.ObjectLayer(L,'ns_PATH')
+                path.append(req_cell)
+        self.PATH=path
+        return path
+    
+    def plot_path(self):
+        path_cen=[]
+        for i in self.PATH:
+            poly=i.gen_poly()
+            rs.ObjectLayer(poly,'ns_garbage')
+            cen=i.get_cen()
+            rs.AddPoint(cen)
+            path_cen.append(cen)
+        poly_path=rs.AddPolyline(path_cen)
+        return poly_path
+    
+    def update_matrix(self,cells,recursion_counter):
+        for i in cells:
+            me=i.get_cen()
+            meL=i.getL()
+            meW=i.getW()
+            me_score=i.get_score()
+            ri=[me[0]+meL,me[1],0] #ri
+            le=[me[0]-meL,me[1],0] #le
+            up=[me[0],me[1]+meW,0] #up
+            dn=[me[0],me[1]-meW,0] #dn
+            max_score=0
+            score_li=[]
+            for j in cells:
+                this_score=j.get_score()
+                this=j.get_cen()
+                di=rs.Distance(this,me)
+                if(j.pt_in_poly(le)==True):
+                    score_li.append(this_score)
+                if(j.pt_in_poly(ri)==True):
+                    score_li.append(this_score)
+                if(j.pt_in_poly(up)==True):
+                    score_li.append(this_score)
+                if(j.pt_in_poly(dn)==True):
+                    score_li.append(this_score)
+            r=random.randint(0,10)
+            if(r>3):
+                for j in score_li:
+                    if(j>max_score):
+                        max_score=j
+            else:
+                if(len(score_li)>1):
+                    r=random.randint(0,len(score_li)-1)
+                    max_score=score_li[r]
+                else:
+                    max_score=j
+            if(max_score>i.get_score()):
+                i.set_score(max_score*0.85)
+        sum=0
+        for i in cells:
+            me=i.get_cen()
+            #rs.AddTextDot(i.get_score(),me)
+            if(me==0):
+                sum+=1
+        if(recursion_counter<10 and sum<5):
+            recursion_counter+=1
+            #print('recursion')
+            self.update_matrix(cells,recursion_counter)
+        else:
+            for i in cells:
+                me=i.get_cen()
+                i.display()
+
+
 
 
 lyr1=rs.AddLayer('ns_topo_srf')
@@ -236,19 +366,29 @@ lyr5=rs.AddLayer('ns_site_srf')
 lyr6=rs.AddLayer('ns_flr_crv')
 lry7=rs.AddLayer('ns_name_textdot')
 lry8=rs.AddLayer('ns_grad_textdot')
+lyr_poly=rs.AddLayer('ns_poly')
+lyr_textdot=rs.AddLayer('ns_textdot')
+lyr_path=rs.AddLayer('ns_path')
+gar=rs.AddLayer('ns_garbage')
 
+cdr=rs.AddLayer('ns_check_poly') 
 
 rs.LayerVisible('ns_name_textdot',False)
 rs.LayerVisible('ns_grad_textdot',False)
+rs.LayerVisible('ns_bldg_srf',False)
+rs.LayerVisible('ns_topo_srf',False)
+rs.LayerVisible('ns_flr_crv',False)
+rs.LayerVisible('ns_text_dot',False)
+rs.LayerVisible('ns_poly',False)
+rs.LayerVisible('ns_textdot',False)
+rs.LayerVisible('ns_garbage',False)
+
 
 site_crv=rs.GetObject('pick plane site')
 site_srf=rs.GetObject('pick site surface')
 rs.ObjectLayer(site_crv,'ns_site_crv')
 rs.ObjectLayer(site_srf,'ns_site_srf')
 
-lyr_poly=rs.AddLayer('ns_poly')
-lyr_textdot=rs.AddLayer('ns_textdot')
-lyr_path=rs.AddLayer('ns_path')
 
 b=rs.BoundingBox(site_crv)
 d1=rs.Distance(b[0],b[1])
@@ -276,13 +416,22 @@ for i in range(a):
 """
 
 # for a single generation
+
 s=start_proc(site_crv, site_srf)
+
+
+########## plot the paths ############
+CELL_LI=s.genGrid(site_crv,25,25)
+s.initPath(CELL_LI)
+s.update_matrix(CELL_LI,0)
+s.buildPath(CELL_LI)
+poly_path=s.plot_path()
+
+########## plot the buildings ############
 plot_grad=True
-s.init_gen_building_proc(plot_grad)
+s.init_gen_building_proc(plot_grad,poly_path)
 #s.build_blocks_at_distance()   # construct at threshold distance
-s.build_blocks_at_gradient()    # construct on threshold grad
-
-
+#s.build_blocks_at_gradient()    # construct on threshold grad
 
 
 rs.LayerVisible('ns_site_srf',False)

@@ -13,6 +13,7 @@ class abs_cell(object):
         self.plot=None
         self.building_srf=None
         self.occupied=False
+        self.name=None
     def set_val(self,t):
         self.val=t
         #print(self.val)
@@ -38,6 +39,29 @@ class abs_cell(object):
         i=self.high_poly
         cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, 0]
         return cen
+        
+        
+        
+    def get_plane_intx_poly(self,path):
+        p0=self.high_poly[0]
+        p1=self.high_poly[1]
+        p2=self.high_poly[2]
+        p3=self.high_poly[3]
+        a=[p0[0],p0[1],0]
+        b=[p1[0],p1[1],0]
+        c=[p2[0],p2[1],0]
+        d=[p3[0],p3[1],0]
+        poly=rs.AddPolyline([a,b,c,d,a])
+        rs.ObjectLayer(poly,'ns_check_poly')
+        intx=rs.CurveCurveIntersection(path,poly)
+        if(intx and len(intx)>0):
+            return True # path intersects with poly
+        else:
+            rs.DeleteObject(poly)
+            return False
+    
+    
+    
     def get_right_dim(self):
         i=self.high_poly
         di=math.fabs(i[0][0]-i[1][0])
@@ -67,6 +91,7 @@ class abs_cell(object):
         val=int(self.val)
         id=self.id
         self.plot=rs.AddTextDot("v= "+str(val)+", r="+str(int(self.flip_val)),cen)
+        rs.ObjectLayer(self.plot,'ns_grad_textdot')
         return self.val
     def plot_val_plane(self):
         i=self.high_poly
@@ -87,6 +112,9 @@ class abs_cell(object):
         except:
             pass
     def plot_building(self,t):
+        self.name=t.name
+        name_td=rs.AddTextDot(self.name,self.get_cen())
+        rs.ObjectLayer(name_td,'ns_name_textdot')
         poly=rs.AddPolyline(self.high_poly)
         cen=rs.CurveAreaCentroid(poly)[0]
         z=cen[2]
@@ -123,7 +151,15 @@ class abs_cell(object):
             rs.ObjectLayer(flr,'ns_flr_crv')
         rs.DeleteObjects([pl_srf,E,base])
     def get_occupied(self):
-        return self.occupied
+        if(self.occupied==True):
+            return True
+        else:
+            return False
     def set_occupied(self, t):
         self.occupied=t
+        if(self.occupied==True):
+            self.path_srf=self.srf
+            rs.ObjectColor(self.path_srf,(120,120,120))
+            rs.ObjectLayer(self.path_srf, 'ns_path')
+
 

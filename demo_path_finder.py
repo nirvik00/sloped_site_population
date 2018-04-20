@@ -25,7 +25,7 @@ class Cell(object):
         cen=[(p0[0]+p2[0])/2,(p0[1]+p2[1])/2,0]
         return cen
     def display(self):
-        self.t=rs.AddTextDot(self.id,self.get_cen())
+        self.t=rs.AddTextDot(str(self.id)+","+str(int(self.score)),self.get_cen())
         rs.ObjectLayer(self.t,'ns_textdot')
     def set_score(self,t):
         self.score=t
@@ -50,7 +50,7 @@ class Cell(object):
             t=True
         rs.DeleteObject(poly)
         return t
-        
+
 def genGrid(site_crv,l, w):
     srf=rs.AddPlanarSrf(site_crv)
     srfUdom=rs.SurfaceDomain(srf,0)
@@ -69,7 +69,7 @@ def genGrid(site_crv,l, w):
     plane_cell_li=[]
     counter=0
     while i<umax:
-        j=umin
+        j=umin        
         while j<vmax:
             p0=rs.EvaluateSurface(srf,i,j)
             p1=rs.EvaluateSurface(srf,i+ustep,j)
@@ -98,20 +98,16 @@ def initPath(cells):
         cen=i.get_cen()
         di=rs.Distance(start_cen,cen)
         id=i.id
-        #i.display()
-        #print(id, di)
         if(di>max_di):
             max_di=di
             max_id=id
-    #print(max_id)
     cells[max_id].set_score(100)
-    rs.AddLine(cells[max_id].get_cen(),start_cen)
 
 def buildPath(cells):
     path=[]
     path.append(cells[0])
     counter=0
-    while(counter<10):
+    while(counter<25):
         counter+=1
         i=path[-1]
         me=i.get_cen()
@@ -128,7 +124,8 @@ def buildPath(cells):
             if(j not in path):
                 this_score=j.get_score()
                 if(j.pt_in_poly(le)==True):
-                    score_li.append([j,this_score])
+                 
+                 score_li.append([j,this_score])
                 if(j.pt_in_poly(ri)==True):
                     score_li.append([j,this_score])
                 if(j.pt_in_poly(up)==True):
@@ -140,9 +137,10 @@ def buildPath(cells):
         if(len(score_li)>0):
             for j in score_li:
                 print('got score= %s , this_id= %s, req_id= %s'%(j[1], i.id, j[0].id))
+            r=random.randint(0,len(score_li)-1)
             req_cell=score_li[-1][0]
             next=req_cell.get_cen()
-            print('acceted id %s'%(req_cell.id))
+            print('accepted id %s'%(req_cell.id))
             L=rs.AddLine(me,next)
             rs.ObjectLayer(L,'ns_path')
             path.append(req_cell)
@@ -171,8 +169,16 @@ def update_matrix(cells,recursion_counter):
                 score_li.append(this_score)
             if(j.pt_in_poly(dn)==True):
                 score_li.append(this_score)
-        for j in score_li:
-            if(j>max_score):
+        r=random.randint(0,10)
+        if(r>3):
+            for j in score_li:
+                if(j>max_score):
+                    max_score=j
+        else:
+            if(len(score_li)>1):
+                r=random.randint(0,len(score_li)-1)
+                max_score=score_li[r]
+            else:
                 max_score=j
         if(max_score>i.get_score()):
             i.set_score(max_score*0.85)
@@ -182,7 +188,7 @@ def update_matrix(cells,recursion_counter):
         #rs.AddTextDot(i.get_score(),me)
         if(me==0):
             sum+=1
-    if(recursion_counter<20 and sum<10):
+    if(recursion_counter<10 and sum<5):
         recursion_counter+=1
         #print('recursion')
         update_matrix(cells,recursion_counter)
@@ -190,8 +196,6 @@ def update_matrix(cells,recursion_counter):
         for i in cells:
             me=i.get_cen()
             i.display()
-
-
 
 
 rs.EnableRedraw(False)
@@ -202,7 +206,7 @@ lyr_textdot=rs.AddLayer('ns_textdot')
 lyr_path=rs.AddLayer('ns_path')
 
 SITE_CRV=rs.GetObject('pick site curve')
-CELL_LI=genGrid(SITE_CRV,50,50)
+CELL_LI=genGrid(SITE_CRV,45,45)
 initPath(CELL_LI)
 update_matrix(CELL_LI,0)
 buildPath(CELL_LI)
