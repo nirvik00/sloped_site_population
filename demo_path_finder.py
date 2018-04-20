@@ -10,6 +10,8 @@ class Cell(object):
         self.id=id
         self.poly=None
         self.score=0
+    def get_id(self):
+        return self.id
     def gen_poly(self):
         self.poly=rs.AddPolyline(self.poly_pts)
         rs.ObjectLayer(self.poly,'ns_poly')
@@ -33,7 +35,6 @@ class Cell(object):
         p0=self.poly_pts[0]
         p1=self.poly_pts[1]
         di=rs.Distance(p0,p1)
-        print(di)
         return di
     def getW(self):
         p0=self.poly_pts[0]
@@ -124,23 +125,27 @@ def buildPath(cells):
         max_score=0
         score_li=[] # [ cell, score ]
         for j in cells:
-            this_score=j.get_score()
-            this=j.get_cen()
-            di=rs.Distance(this,me)
-            if(j.pt_in_poly(le)==True):
-                score_li.append([j,this_score])
-            if(j.pt_in_poly(ri)==True):
-                score_li.append([j,this_score])
-            if(j.pt_in_poly(up)==True):
-                score_li.append([j,this_score])
-            if(j.pt_in_poly(dn)==True):
-                score_li.append([j,this_score])
+            if(j not in path):
+                this_score=j.get_score()
+                if(j.pt_in_poly(le)==True):
+                    score_li.append([j,this_score])
+                if(j.pt_in_poly(ri)==True):
+                    score_li.append([j,this_score])
+                if(j.pt_in_poly(up)==True):
+                    score_li.append([j,this_score])
+                if(j.pt_in_poly(dn)==True):
+                    score_li.append([j,this_score])
         score_li.sort(key=itemgetter(1))
-        req_cell=score_li[-1][0]
-        next=req_cell.get_cen()
-        L=rs.AddLine(me,next)
-        rs.ObjectLayer(L,'ns_path')
-        path.append(req_cell)
+        print('\n\n---------')
+        if(len(score_li)>0):
+            for j in score_li:
+                print('got score= %s , this_id= %s, req_id= %s'%(j[1], i.id, j[0].id))
+            req_cell=score_li[-1][0]
+            next=req_cell.get_cen()
+            print('acceted id %s'%(req_cell.id))
+            L=rs.AddLine(me,next)
+            rs.ObjectLayer(L,'ns_path')
+            path.append(req_cell)
 
 def update_matrix(cells,recursion_counter):
     for i in cells:
@@ -169,7 +174,8 @@ def update_matrix(cells,recursion_counter):
         for j in score_li:
             if(j>max_score):
                 max_score=j
-        i.set_score(max_score*0.85)
+        if(max_score>i.get_score()):
+            i.set_score(max_score*0.85)
     sum=0
     for i in cells:
         me=i.get_cen()
@@ -178,7 +184,7 @@ def update_matrix(cells,recursion_counter):
             sum+=1
     if(recursion_counter<20 and sum<10):
         recursion_counter+=1
-        print('recursion')
+        #print('recursion')
         update_matrix(cells,recursion_counter)
     else:
         for i in cells:
