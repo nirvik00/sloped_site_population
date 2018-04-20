@@ -107,12 +107,13 @@ def initPath(cells):
     rs.AddLine(cells[max_id].get_cen(),start_cen)
 
 def buildPath(cells):
-    path=cells[0]
+    path=[]
+    path.append(cells[0])
     counter=0
     while(counter<10):
         counter+=1
-        #me=i.get_cen()
-        me=path[-1].get_cen()
+        i=path[-1]
+        me=i.get_cen()
         meL=i.getL()
         meW=i.getW()
         me_score=i.get_score()
@@ -137,7 +138,8 @@ def buildPath(cells):
         score_li.sort(key=itemgetter(1))
         req_cell=score_li[-1][0]
         next=req_cell.get_cen()
-        rs.AddLine(me,next)
+        L=rs.AddLine(me,next)
+        rs.ObjectLayer(L,'ns_path')
         path.append(req_cell)
 
 def update_matrix(cells,recursion_counter):
@@ -191,6 +193,7 @@ rs.EnableRedraw(False)
 
 lyr_poly=rs.AddLayer('ns_poly')
 lyr_textdot=rs.AddLayer('ns_textdot')
+lyr_path=rs.AddLayer('ns_path')
 
 SITE_CRV=rs.GetObject('pick site curve')
 CELL_LI=genGrid(SITE_CRV,50,50)
