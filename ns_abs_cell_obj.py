@@ -16,8 +16,12 @@ class abs_cell(object):
     def set_val(self,t):
         self.val=t
         #print(self.val)
-    def flip_value(self,max):
+    def get_val(self):
+        return val
+    def set_flip_value(self,max):
         self.flip_val=max-self.val    
+    def get_flip_value(self,max):
+        return self.flip_val
     def get_val(self):
         return self.val
     def get_id(self):
@@ -30,6 +34,18 @@ class abs_cell(object):
         i=self.high_poly
         cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, i[0][2]]
         return cen
+    def get_cen_plane(self):
+        i=self.high_poly
+        cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, 0]
+        return cen
+    def get_right_dim(self):
+        i=self.high_poly
+        di=math.fabs(i[0][0]-i[1][0])
+        return di
+    def get_up_dim(self):
+        i=self.high_poly
+        di=math.fabs(i[3][0]-i[0][0])
+        return di
     def gen_srf(self, min_grad, max_grad):
         fac=255/max_grad
         high_poly=rs.AddPolyline(self.high_poly)
@@ -41,6 +57,7 @@ class abs_cell(object):
         bl=255
         rs.ObjectColor(self.srf,(re,gr,bl))
         rs.DeleteObjects([high_poly, low_poly])
+        rs.ObjectLayer(self.srf,'ns_topo_srf')
         return self.srf
     def del_srf(self):
         rs.DeleteObject(self.srf)
@@ -49,8 +66,21 @@ class abs_cell(object):
         cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, i[0][2]]
         val=int(self.val)
         id=self.id
-        self.plot=rs.AddTextDot(str(val)+","+str(int(self.flip_val)),cen)
+        self.plot=rs.AddTextDot("v= "+str(val)+", r="+str(int(self.flip_val)),cen)
         return self.val
+    def plot_val_plane(self):
+        i=self.high_poly
+        cen=[(i[0][0]+i[2][0])/2 , (i[0][1]+i[2][1])/2, 0]
+        val=int(self.val)
+        id=self.id
+        self.plot=rs.AddTextDot("v= "+str(val)+", r="+str(int(self.flip_val)),cen)
+        return self.val
+    def plot_poly_plane(self):
+        pts=[]
+        for i in self.high_poly:
+            p=[i[0],i[1],0]
+            pts.append(p)
+        return pts
     def del_plot(self):
         try:
             rs.DeleteObject(self.plot)
@@ -83,11 +113,15 @@ class abs_cell(object):
         pl_srf=rs.AddPlanarSrf(base)
         E=rs.AddLine([0,0,0],[0,0,t.getH()])
         self.building_srf=rs.ExtrudeSurface(pl_srf,E)
+        rs.ObjectLayer(self.building_srf,'ns_bldg_srf')
         re=int(t.getColr().split("-")[0])
         gr=int(t.getColr().split("-")[1])
         bl=int(t.getColr().split("-")[2])
         rs.ObjectColor(self.building_srf, (re,gr,bl))
-        rs.DeleteObjects([pl_srf,E])
+        for i in range(0,t.getH(),3):
+            flr=rs.CopyObject(base,[0,0,i])
+            rs.ObjectLayer(flr,'ns_flr_crv')
+        rs.DeleteObjects([pl_srf,E,base])
     def get_occupied(self):
         return self.occupied
     def set_occupied(self, t):
